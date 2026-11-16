@@ -18,9 +18,12 @@ def _workspace() -> Path:
 
 sys.path.insert(0, str(_workspace() / "tools/gamekit/pipeline"))
 
-from spritekit import from_rows, preview, strip  # noqa: E402
+from spritekit import from_rows, preview, strip, write_meta  # noqa: E402
 
 NAME = "raindrop"
+FPS = 1
+ANCHOR = (1.5, 8.5)  # đầu giọt = điểm tính va chạm
+LOOP = False
 HERE = Path(__file__).resolve().parent
 GAME = HERE.parents[3]
 OUT = GAME / "assets/sprites/custom" / NAME
@@ -52,6 +55,7 @@ def main() -> None:
     frames[0].save(OUT / f"{NAME}.png")
     strip(frames).save(OUT / f"{NAME}_strip.png")
     preview(frames, HERE / "preview.png", scale=24)
+    write_meta(OUT / f"{NAME}.json", frames, fps=FPS, anchor=ANCHOR, loop=LOOP)
     print(f"sprite: {OUT / f'{NAME}.png'}")
 
 

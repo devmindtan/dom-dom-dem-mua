@@ -18,9 +18,12 @@ def _workspace() -> Path:
 
 sys.path.insert(0, str(_workspace() / "tools/gamekit/pipeline"))
 
-from spritekit import from_rows, gif, preview, strip  # noqa: E402
+from spritekit import from_rows, gif, preview, strip, write_meta  # noqa: E402
 
 NAME = "splash"
+FPS = 10
+ANCHOR = (5.0, 6.0)  # giữa cạnh dưới, đặt lên điểm chạm
+LOOP = False
 HERE = Path(__file__).resolve().parent
 GAME = HERE.parents[3]
 OUT = GAME / "assets/sprites/custom" / NAME
@@ -66,6 +69,7 @@ def main() -> None:
     strip(frames).save(OUT / f"{NAME}_strip.png")
     preview(frames, HERE / "preview.png", scale=24)
     gif(frames, HERE / "anim.gif", fps=10, scale=12)
+    write_meta(OUT / f"{NAME}.json", frames, fps=FPS, anchor=ANCHOR, loop=LOOP)
     print(f"strip: {OUT / f'{NAME}_strip.png'}")
 
 

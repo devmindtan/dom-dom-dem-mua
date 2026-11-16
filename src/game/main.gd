@@ -26,14 +26,13 @@ const COL_GLOW := Color(1.0, 0.92, 0.35)
 const COL_MOTE := Color(0.70, 1.0, 0.55)
 const COL_TEXT := Color(0.95, 0.95, 0.88)
 
-## Sprite strips (frames laid out left to right), by config key under "sprites".
-const SPRITE_PATHS := {
-	"firefly": "res://assets/sprites/custom/firefly/firefly_strip.png",
-	"mote": "res://assets/sprites/custom/mote/mote_strip.png",
-	"raindrop": "res://assets/sprites/custom/raindrop/raindrop_strip.png",
-	"splash": "res://assets/sprites/custom/splash/splash_strip.png",
-}
-var _tex := {}  # name -> Texture2D
+## Pixel-art sprites. Each has <name>_strip.png (frames left to right) and
+## <name>.json (frames, frame_size, fps, loop, anchor), both written by its gen.py.
+const SPRITES: Array[String] = ["firefly", "mote", "raindrop", "splash"]
+const SPRITE_DIR := "res://assets/sprites/custom/%s/%s"
+
+var _tex := {}   # name -> Texture2D
+var _meta := {}  # name -> Dictionary from <name>.json
 
 var _cfg: Dictionary
 var _meter: LightMeter
@@ -76,8 +75,9 @@ func _ready() -> void:
 		elif arg.begins_with("--seed="):
 			_rng.seed = int(arg.trim_prefix("--seed="))
 	_build_backdrop()
-	for key in SPRITE_PATHS:
-		_tex[key] = load(SPRITE_PATHS[key])
+	for sprite_name in SPRITES:
+		_tex[sprite_name] = load(SPRITE_DIR % [sprite_name, sprite_name + "_strip.png"])
+		_meta[sprite_name] = GameConfig.load_config(SPRITE_DIR % [sprite_name, sprite_name + ".json"])
 	_meter = LightMeter.from_config(_section("light"))
 	_player_pos = _screen * 0.5
 	if _demo:
@@ -334,8 +334,9 @@ func _sprite_scale() -> float:
 	return float(maxi(1, int(_section("sprites").get("scale", 3))))
 
 
+## Metadata of a sprite (frames, fps, anchor…) from its <name>.json.
 func _anim(name: String) -> Dictionary:
-	var v: Variant = _section("sprites").get(name, {})
+	var v: Variant = _meta.get(name, {})
 	return v if v is Dictionary else {}
 
 
