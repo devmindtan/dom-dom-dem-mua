@@ -13,6 +13,7 @@ extends Node2D
 ##   --idle        start a run and never move (reaches game over; for screenshots)
 ##   --seed=<int>  fixed random seed (for repeatable screenshots)
 ##   --debug-anchors  draw a magenta dot on every sprite's anchor point
+##   --mage-preview   show every animation of the mage sheet in one row
 
 const CONFIG_PATH := "res://assets/data/game_config.json"
 
@@ -28,7 +29,7 @@ const COL_TEXT := Color(0.95, 0.95, 0.88)
 
 ## Pixel-art sprites. Each has <name>_strip.png (frames left to right) and
 ## <name>.json (frames, frame_size, fps, loop, anchor), both written by its gen.py.
-const SPRITES: Array[String] = ["firefly", "mote", "raindrop", "splash"]
+const SPRITES: Array[String] = ["firefly", "mote", "raindrop", "splash", "mage"]
 const SPRITE_DIR := "res://assets/sprites/custom/%s/%s"
 
 var _tex := {}   # name -> Texture2D
@@ -41,6 +42,7 @@ var _state: State = State.TITLE
 var _demo := false
 var _demo_idle := false
 var _debug_anchors := false
+var _mage_preview := false
 
 var _screen: Vector2
 var _player_pos: Vector2
@@ -72,6 +74,8 @@ func _ready() -> void:
 			_demo_idle = true
 		elif arg == "--debug-anchors":
 			_debug_anchors = true
+		elif arg == "--mage-preview":
+			_mage_preview = true
 		elif arg.begins_with("--seed="):
 			_rng.seed = int(arg.trim_prefix("--seed="))
 	_build_backdrop()
@@ -269,6 +273,9 @@ func _build_backdrop() -> void:
 
 func _draw() -> void:
 	_draw_sky()
+	if _mage_preview:
+		_draw_mage_preview()
+		return
 	for mote in _motes:
 		_draw_mote(mote)
 	for drop in _drops:
@@ -375,16 +382,45 @@ func _anchor(name: String) -> Vector2:
 ## Draws frame [param idx] of a strip with its anchor on [param point], scaled by
 ## sprites.scale, mirrored if [param flip_h]. Snapped to whole screen pixels so
 ## every source pixel stays the same size.
-func _draw_frame(name: String, idx: int, point: Vector2, flip_h := false, tint := Color.WHITE) -> void:
+func _draw_frame(name: String, idx: int, point: Vector2, flip_h := false, tint := Color.WHITE,
+		scale := -1.0) -> void:
 	var tex: Texture2D = _tex.get(name)
 	if tex == null:
 		return
 	var fs := _frame_size(name)
-	var dest := SpriteAnchor.dest_rect(point, fs, _anchor(name), _sprite_scale(), flip_h)
+	var dest := SpriteAnchor.dest_rect(point, fs, _anchor(name),
+		_sprite_scale() if scale <= 0.0 else scale, flip_h)
 	dest.position = dest.position.round()
 	draw_texture_rect_region(tex, dest, Rect2(Vector2(fs.x * idx, 0.0), fs), tint)
 	if _debug_anchors:
 		draw_rect(Rect2(point - Vector2(1, 1), Vector2(2, 2)), Color.MAGENTA)
+
+
+## Debug view: all mage animations side by side, each playing in place, so one
+## screenshot proves every row of the sheet and its anchor line up.
+func _draw_mage_preview() -> void:
+	var anims: Array = _anim("mage").get("animations", [])
+	if anims.is_empty():
+		return
+	var fs := _frame_size("mage")
+	var scale := 3.0
+	var gap := 16.0
+	var total := anims.size() * fs.x * scale + (anims.size() - 1) * gap
+	var left := (_screen.x - total) * 0.5
+	var ground_y := _screen.y * 0.66 + 90.0
+	draw_line(Vector2(0.0, ground_y), Vector2(_screen.x, ground_y), Color(1, 1, 1, 0.10))
+	var font := ThemeDB.fallback_font
+	for i in anims.size():
+		var a: Dictionary = anims[i]
+		var n := int(a.get("frames", 1))
+		var fps := maxf(0.001, float(a.get("fps", 1.0)))
+		var t := int(floor(_time * fps))
+		var idx := posmod(t, n) if bool(a.get("loop", true)) else mini(t, n - 1)
+		var point := Vector2(left + i * (fs.x * scale + gap) + fs.x * scale * 0.5, ground_y)
+		_draw_frame("mage", int(a.get("start", 0)) + idx, point, false, Color.WHITE, scale)
+		draw_string(font, Vector2(point.x - fs.x * scale * 0.5, ground_y + 24.0),
+			str(a.get("name", "?")), HORIZONTAL_ALIGNMENT_CENTER, fs.x * scale, 16, COL_TEXT)
+	_center_text(font, "MAGE — 7 animations", 48.0, 24, COL_GLOW)
 
 
 func _draw_hud() -> void:

@@ -64,3 +64,34 @@ func test_each_sprite_has_its_generator() -> void:
 	for name: String in MainScript.SPRITES:
 		var gen := ProjectSettings.globalize_path(GEN % name)
 		_check(FileAccess.file_exists(gen), "%s missing: sprite cannot be regenerated" % gen)
+
+
+func test_sheet_animations_are_contiguous() -> void:
+	# A sheet with several animations lists them in <name>.json; every frame must
+	# belong to exactly one animation, starting at 0, with its own fps and loop.
+	for name: String in MainScript.SPRITES:
+		var m := _meta(name)
+		var anims: Variant = m.get("animations")
+		if anims == null:
+			continue
+		_check(anims is Array and not (anims as Array).is_empty(),
+			"%s: animations must be a non-empty array" % name)
+		if not (anims is Array):
+			continue
+		var next := 0
+		var seen := {}
+		for a: Variant in anims:
+			_check(a is Dictionary, "%s: animation entry is not an object" % name)
+			if not (a is Dictionary):
+				continue
+			var an := str(a.get("name", ""))
+			_check(an != "" and not seen.has(an), "%s: animation name %r missing or repeated" % [name, an])
+			seen[an] = true
+			_check(int(a.get("start", -1)) == next,
+				"%s/%s starts at %s, expected %d" % [name, an, a.get("start"), next])
+			var n := int(a.get("frames", 0))
+			_check(n >= 1, "%s/%s: frames must be >= 1" % [name, an])
+			_check(float(a.get("fps", 0)) > 0.0, "%s/%s: fps must be > 0" % [name, an])
+			next += n
+		_check(next == int(m.get("frames", -1)),
+			"%s: animations use %d frames, sheet has %s" % [name, next, m.get("frames")])
