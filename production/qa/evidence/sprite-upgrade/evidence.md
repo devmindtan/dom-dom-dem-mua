@@ -18,3 +18,21 @@ Tests: `gamekit test`: 19 passed, 0 failed (3 new in tests/integration/sprites; 
 was watched failing with a wrong `frames` value before it was trusted).
 
 Run result: OBSERVED. Not verified by a human: whether 3x reads well on a large monitor.
+
+## Anchor fix (same day, after the user noticed sprites sat slightly off centre)
+
+Measured: sprites were centred on their canvas, not on their content. The mote's 7 px shape sat in
+an 8x8 canvas (1.5 screen px up-left of its own glow); the firefly's content centre was 0.5 source px
+left of canvas centre, so it jumped 3 screen px each time it turned around.
+Now every sprite has an `anchor` (source pixels) in the `sprites` config and is drawn through
+`SpriteAnchor.dest_rect`, which mirrors the anchor when the sprite is flipped; positions snap to whole
+screen pixels.
+
+| Shot | What it shows |
+|---|---|
+| ![](05-anchor-firefly-left-right.png) | `--debug-anchors`, 4x zoom: the anchor dot sits on the body centre flying left (demo) and right (title) |
+| ![](06-anchor-raindrop-mote.png) | anchor on each drop's head; on the mote's centre, inside its glow |
+| ![](07-play-seed7-anchored.png) | normal play, same seed as 02 |
+
+Tests: 23 passed, 0 failed. The two flip tests in tests/unit/sprite_anchor failed against the old
+logic (anchor not mirrored: "moved from (100, 200) to (103, 200)") before the fix.

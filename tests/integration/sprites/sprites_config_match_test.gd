@@ -41,6 +41,13 @@ func test_each_strip_splits_into_its_frames() -> void:
 		_check(frames >= 1 and tex.get_width() % frames == 0,
 			"%s: width %d does not split into %d frames" % [name, tex.get_width(), frames])
 		_check(float(s[name].get("fps", 0)) > 0.0, "%s: fps must be > 0" % name)
+		var a: Variant = s[name].get("anchor")
+		_check(a is Array and a.size() == 2, "%s: anchor [x, y] missing" % name)
+		if a is Array and a.size() == 2:
+			var fw := float(tex.get_width()) / maxf(1.0, float(frames))
+			_check(float(a[0]) >= 0.0 and float(a[0]) <= fw and float(a[1]) >= 0.0
+				and float(a[1]) <= float(tex.get_height()),
+				"%s: anchor %s outside the %dx%d frame" % [name, a, int(fw), tex.get_height()])
 
 
 func test_each_sprite_has_its_generator() -> void:

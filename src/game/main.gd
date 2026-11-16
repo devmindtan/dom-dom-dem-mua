@@ -12,6 +12,7 @@ extends Node2D
 ##   --demo        start a run immediately and let a simple autopilot fly
 ##   --idle        start a run and never move (reaches game over; for screenshots)
 ##   --seed=<int>  fixed random seed (for repeatable screenshots)
+##   --debug-anchors  draw a magenta dot on every sprite's anchor point
 
 const CONFIG_PATH := "res://assets/data/game_config.json"
 
@@ -32,9 +33,6 @@ const SPRITE_PATHS := {
 	"raindrop": "res://assets/sprites/custom/raindrop/raindrop_strip.png",
 	"splash": "res://assets/sprites/custom/splash/splash_strip.png",
 }
-## Where the falling drop's head is inside raindrop.png (pixels): drawn at the drop position.
-const DROP_HEAD := Vector2(1.5, 8.5)
-
 var _tex := {}  # name -> Texture2D
 
 var _cfg: Dictionary
@@ -43,6 +41,7 @@ var _rng := RandomNumberGenerator.new()
 var _state: State = State.TITLE
 var _demo := false
 var _demo_idle := false
+var _debug_anchors := false
 
 var _screen: Vector2
 var _player_pos: Vector2
@@ -72,6 +71,8 @@ func _ready() -> void:
 		elif arg == "--idle":
 			_demo = true
 			_demo_idle = true
+		elif arg == "--debug-anchors":
+			_debug_anchors = true
 		elif arg.begins_with("--seed="):
 			_rng.seed = int(arg.trim_prefix("--seed="))
 	_build_backdrop()
@@ -270,15 +271,12 @@ func _draw() -> void:
 	_draw_sky()
 	for mote in _motes:
 		_draw_mote(mote)
-	var px := _sprite_scale()
 	for drop in _drops:
-		# The sprite's head pixel sits on the drop position (the point used for hits).
-		var top_left: Vector2 = drop["pos"] - DROP_HEAD * px
-		_draw_frame("raindrop", 0, top_left + _frame_size("raindrop") * px * 0.5)
+		# Anchor = the drop's head pixel, on the point used for hits.
+		_draw_frame("raindrop", 0, drop["pos"])
 	for s in _splashes:
-		var idx := _frame_at("splash", float(s["age"]), false)
-		# Anchor: middle of the bottom edge on the impact point.
-		_draw_frame("splash", idx, s["pos"] - Vector2(0.0, _frame_size("splash").y * px * 0.5))
+		# Anchor = middle of the bottom edge, on the impact point.
+		_draw_frame("splash", _frame_at("splash", float(s["age"]), false), s["pos"])
 	draw_colored_polygon(_grass, COL_GRASS)
 	_draw_firefly()
 	_draw_hud()
@@ -323,9 +321,10 @@ func _draw_firefly() -> void:
 		draw_circle(pos, halo * (1.0 - 0.8 * f), Color(COL_GLOW, 0.03))
 	if blink:
 		return
-	# Sprite faces right; mirror it when flying left. Snapped to whole pixels.
+	# Sprite faces right; mirror it when flying left. Its anchor (body centre)
+	# sits on the halo's centre in both directions.
 	var idx := _frame_at("firefly", _time, true)
-	_draw_frame("firefly", idx, pos.round(), _facing < 0.0)
+	_draw_frame("firefly", idx, pos, _facing < 0.0)
 
 
 # --- sprite helpers -----------------------------------------------------------
@@ -364,17 +363,27 @@ func _frame_at(name: String, t: float, loop: bool) -> int:
 	return posmod(i, n) if loop else mini(i, n - 1)
 
 
-## Draws frame [param idx] of a strip centred on [param center], scaled by sprites.scale.
-func _draw_frame(name: String, idx: int, center: Vector2, flip_h := false, tint := Color.WHITE) -> void:
+## Anchor of a sprite in source pixels (sprites.<name>.anchor); the frame centre if unset.
+func _anchor(name: String) -> Vector2:
+	var a: Variant = _anim(name).get("anchor")
+	if a is Array and a.size() == 2:
+		return Vector2(float(a[0]), float(a[1]))
+	return _frame_size(name) * 0.5
+
+
+## Draws frame [param idx] of a strip with its anchor on [param point], scaled by
+## sprites.scale, mirrored if [param flip_h]. Snapped to whole screen pixels so
+## every source pixel stays the same size.
+func _draw_frame(name: String, idx: int, point: Vector2, flip_h := false, tint := Color.WHITE) -> void:
 	var tex: Texture2D = _tex.get(name)
 	if tex == null:
 		return
 	var fs := _frame_size(name)
-	var size := fs * _sprite_scale()
-	var dest := Rect2(center - size * 0.5, size)
-	if flip_h:  # a negative width mirrors the texture in place (Godot keeps the rect's area)
-		dest.size.x = -size.x
+	var dest := SpriteAnchor.dest_rect(point, fs, _anchor(name), _sprite_scale(), flip_h)
+	dest.position = dest.position.round()
 	draw_texture_rect_region(tex, dest, Rect2(Vector2(fs.x * idx, 0.0), fs), tint)
+	if _debug_anchors:
+		draw_rect(Rect2(point - Vector2(1, 1), Vector2(2, 2)), Color.MAGENTA)
 
 
 func _draw_hud() -> void:

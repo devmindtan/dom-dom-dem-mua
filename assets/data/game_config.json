@@ -15,9 +15,9 @@
   "world": { "ground_height": 70.0, "star_count": 70 },
   "sprites": {
     "scale": 3,
-    "firefly": { "frames": 4, "fps": 12 },
-    "mote": { "frames": 4, "fps": 6 },
-    "raindrop": { "frames": 1, "fps": 1 },
-    "splash": { "frames": 3, "fps": 10 }
+    "firefly": { "frames": 4, "fps": 12, "anchor": [7.5, 8.5] },
+    "mote": { "frames": 4, "fps": 6, "anchor": [3.5, 3.5] },
+    "raindrop": { "frames": 1, "fps": 1, "anchor": [1.5, 8.5] },
+    "splash": { "frames": 3, "fps": 10, "anchor": [5.0, 6.0] }
   }
 }
