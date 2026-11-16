@@ -7,7 +7,8 @@ extends RefCounted
 const MainScript := preload("res://src/game/main.gd")
 const CONFIG_PATH := "res://assets/data/game_config.json"
 const DIR := "res://assets/sprites/custom/%s/%s"
-const GEN := "res://assets/source/sprites/%s/gen.py"
+## Workspace root (games/<g>/ is two levels below it); sprite sources live in its Sprite Lab.
+const WORKSPACE := "res://../.."
 
 var failures: Array[String] = []
 
@@ -59,8 +60,12 @@ func test_each_anchor_lies_inside_its_frame() -> void:
 				"%s: anchor %s outside the %s frame" % [name, a, fs])
 
 
-func test_each_sprite_has_its_generator() -> void:
-	# assets/source is .gdignore'd, so check the file on disk, not as a resource.
+func test_each_sprite_came_from_the_sprite_lab() -> void:
+	# Sprites are made in the workspace Sprite Lab and copied here by
+	# `gamekit art promote`, which records "source" in the json (lesson 2026-11-16).
 	for name: String in MainScript.SPRITES:
-		var gen := ProjectSettings.globalize_path(GEN % name)
-		_check(FileAccess.file_exists(gen), "%s missing: sprite cannot be regenerated" % gen)
+		var src := String(_meta(name).get("source", ""))
+		_check(src == "sprite-lab/sprites/" + name,
+			"%s.json has no Sprite Lab source (gamekit art promote %s dom-dom-dem-mua)" % [name, name])
+		var gen := ProjectSettings.globalize_path(WORKSPACE).path_join(src).path_join("gen.py")
+		_check(src == "" or FileAccess.file_exists(gen), "%s missing: sprite cannot be regenerated" % gen)

@@ -35,7 +35,7 @@ gamekit export       # test → Linux + Windows + Web
 |---|---|
 | `src/core/` | luật chơi thuần, test được: `LightMeter` (đèn = máu), `Difficulty` (mưa tăng dần), `GameConfig`, `SpriteAnchor` (đặt sprite theo điểm neo, kể cả khi lật) |
 | `src/game/main.gd` | màn chơi duy nhất; bầu trời, quầng sáng, HUD vẽ bằng code; đom đóm, đốm sáng, mưa, tóe nước là sprite |
-| `assets/source/sprites/<tên>/gen.py` | code sinh sprite pixel art (`gamekit art run . <tên>`); kết quả ở `assets/sprites/custom/<tên>/` |
+| `assets/sprites/custom/<tên>/` | sprite pixel art đã promote từ Sprite Lab (`source` trong json); sửa ở `../../sprite-lab/sprites/<tên>/` rồi `gamekit art promote <tên> dom-dom-dem-mua` |
 | `assets/data/game_config.json` | **mọi con số cân bằng**: tốc độ, tốc độ hao đèn, mật độ mưa…, và khối `sprites` (phóng to, số frame, fps); sửa ở đây, không sửa code |
 | `tests/unit`, `tests/integration` | test |
 | `production/qa/evidence/` | ảnh chụp chứng minh từng màn đã chạy |

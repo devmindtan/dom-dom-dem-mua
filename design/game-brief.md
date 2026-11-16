@@ -16,7 +16,7 @@
 **Intent:**
 
 ## Look and references
-- Look: 2D night meadow in deep navy, crescent moon, twinkling stars, black grass silhouette; warm yellow-green firefly with a soft halo whose size tracks its light; cold pale-blue rain streaks. Creatures and rain are pixel-art sprites (3x, Nearest) generated from code by `gamekit art` (`assets/source/sprites/<name>/gen.py`); sky, halo and HUD are drawn shapes. *(provisional)*
+- Look: 2D night meadow in deep navy, crescent moon, twinkling stars, black grass silhouette; warm yellow-green firefly with a soft halo whose size tracks its light; cold pale-blue rain streaks. Creatures and rain are pixel-art sprites (3x, Nearest) made in the workspace Sprite Lab (`sprite-lab/sprites/<name>/gen.py`) and promoted here; sky, halo and HUD are drawn shapes. *(provisional)*
 - References: none.
 - View: 2D · Camera: fixed, whole field on screen.
 
