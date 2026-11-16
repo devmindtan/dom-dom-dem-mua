@@ -33,7 +33,7 @@ gamekit export       # test → Linux + Windows + Web
 
 | Ở đâu | Là gì |
 |---|---|
-| `src/core/` | luật chơi thuần, test được: `LightMeter` (đèn = máu), `Difficulty` (mưa tăng dần), `GameConfig` |
+| `src/core/` | luật chơi thuần, test được: `LightMeter` (đèn = máu), `Difficulty` (mưa tăng dần), `GameConfig`, `SpriteAnchor` (đặt sprite theo điểm neo, kể cả khi lật) |
 | `src/game/main.gd` | màn chơi duy nhất; bầu trời, quầng sáng, HUD vẽ bằng code; đom đóm, đốm sáng, mưa, tóe nước là sprite |
 | `assets/source/sprites/<tên>/gen.py` | code sinh sprite pixel art (`gamekit art run . <tên>`); kết quả ở `assets/sprites/custom/<tên>/` |
 | `assets/data/game_config.json` | **mọi con số cân bằng**: tốc độ, tốc độ hao đèn, mật độ mưa…, và khối `sprites` (phóng to, số frame, fps); sửa ở đây, không sửa code |
@@ -42,7 +42,7 @@ gamekit export       # test → Linux + Windows + Web
 | `assets/sprites/characters/sample_hero` | nhân vật LPC mẫu để thử pipeline (game hiện chưa dùng) |
 
 Tham số dòng lệnh khi chạy (sau `--`): `--demo` (bot tự bay), `--idle` (đứng yên cho tới khi thua),
-`--seed=<n>` (cố định ngẫu nhiên).
+`--seed=<n>` (cố định ngẫu nhiên), `--debug-anchors` (chấm hồng ở điểm neo của mỗi sprite).
 
 Mở AI agent (Claude Code, OpenCode, Codex…) **trong thư mục này** để dùng skill của framework (`/next-step`, `/balance-check`, `/dev-story`…); agent nào cũng bắt đầu từ `AGENTS.md`.
 
