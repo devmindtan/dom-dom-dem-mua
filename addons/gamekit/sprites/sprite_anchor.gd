@@ -8,6 +8,9 @@ extends RefCounted
 ## Mirroring uses a negative width; Godot then draws the same area flipped, so a
 ## source x shows at x' = width - x and the anchor must be mirrored too.
 ##
+## Shared by every game and the sprite lab (addons/gamekit/sprites). Lesson
+## 2026-11-16: never centre a sprite on its canvas; never re-derive a flipped rect.
+##
 ## Example:
 ##   var r := SpriteAnchor.dest_rect(pos, Vector2(16, 16), Vector2(7.5, 8.5), 3.0, true)
 ##   draw_texture_rect_region(tex, r, src_rect)
