@@ -3,13 +3,25 @@
 Indie game development managed through 49 coordinated Claude Code subagents.
 Each agent owns a specific domain, enforcing separation of concerns and quality.
 
+## This game
+
+**Đom Đóm Đêm Mưa**: see `README.md` (what it is, controls, layout, who owns which folder) and
+`design/game-brief.md` (the design record, `modes.rigor: minimal`). Workspace tools: `gamekit`
+(`../../tools/gamekit`); the workspace's request → tool workflow is `../../CLAUDE.md`.
+Never edit `addons/gamekit/` here; it is a copy (edit `../../tools/gamekit`, then `gamekit install`).
+
+**Commit every change (standing user instruction).** After each change, verify it (`gamekit test`, plus
+`gamekit shot` for anything visible) and commit it in this repo before ending the turn: Conventional
+Commits, a `Verified:` line in the body, and the full rules in `../../CLAUDE.md` ("Quy tắc commit").
+This standing instruction is the "user instruction" that "No commits without user instruction" below asks for.
+
 ## Technology Stack
 
-- **Engine**: [CHOOSE: Web / Godot 4 / Unity / Unreal Engine 5]
-- **Language**: [CHOOSE: TypeScript / GDScript / C# / C++ / Blueprint]
+- **Engine**: Godot 4.7.2 (Compatibility renderer, 2D)
+- **Language**: GDScript
 - **Version Control**: Git with trunk-based development
-- **Build System**: [SPECIFY after choosing engine]
-- **Asset Pipeline**: [SPECIFY after choosing engine]
+- **Build System**: `gamekit export` (presets in export_presets.cfg: Linux, Windows, Web)
+- **Asset Pipeline**: `gamekit sprites` for LPC characters (assets/source/lpc → SpriteFrames + credits); tuning data in assets/data/*.json. Tools: ../../tools/gamekit (README there); addon copy in addons/gamekit (refresh with `gamekit install`)
 
 > **Note**: Engine-specialist agents exist for Godot, Unity, and Unreal with
 > dedicated sub-specialists. Use the set matching your engine.

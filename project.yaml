@@ -25,3 +25,25 @@ framework:
 # here. `/project-settings --local <key>=<value>` writes there; `/project-settings <key>=<value>`
 # edits this file. See `.claude/docs/config-resolution.md` for the full
 # precedence order.
+
+engine:
+  name: "Godot"
+  version: "4.7.2"
+  language: "GDScript"
+  rendering: "Compatibility"
+  physics: "Godot Physics 2D"
+
+specialists:
+  code: godot-gdscript-specialist
+  shader: godot-shader-specialist
+  ui: godot-specialist
+  additional: [godot-gdextension-specialist]
+
+commands:
+  run: "godot --path . --windowed --resolution 1280x720"
+  test: "gamekit test"
+  build: "gamekit export"
+  sprites: "gamekit sprites"
+
+modes:
+  rigor: minimal
