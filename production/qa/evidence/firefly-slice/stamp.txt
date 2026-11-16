@@ -1,0 +1,5 @@
+Reviewed-Content-Hash: src/game/main.gd e1ffa25dd27b6ebce80d68be16c94a7d50b97d6a
+Reviewed-Content-Hash: src/core/light_meter.gd c5de6d9ef3aedd92fc016c9fc97c30acc90f32c5
+Reviewed-Content-Hash: src/core/difficulty.gd 9c95d0f16a525780bc969b95a4d7ec8e723c3f97
+Reviewed-Content-Hash: src/core/game_config.gd 6806311fd11b182ec2bfe1519ae2eb32e376725e
+Reviewed-Content-Hash: assets/data/game_config.json d835872f934b80777af17ad0772beb6851b9da3a

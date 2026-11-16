@@ -1,0 +1,17 @@
+{
+  "player": { "speed": 330.0, "radius": 13.0, "hit_invuln_sec": 0.8 },
+  "light": { "max": 100.0, "start": 70.0, "drain_per_sec": 6.5, "mote_gain": 10.0, "hit_loss": 20.0 },
+  "motes": { "max_on_screen": 4, "spawn_interval": 1.4, "radius": 7.0, "lifetime": 7.0 },
+  "rain": {
+    "start_interval": 0.16,
+    "min_interval": 0.025,
+    "interval_ramp_per_sec": 0.0018,
+    "speed_min": 300.0,
+    "speed_max": 460.0,
+    "speed_ramp_per_sec": 2.5,
+    "length": 22.0,
+    "hit_radius": 3.0,
+    "wind_x": -60.0
+  },
+  "world": { "ground_height": 70.0, "star_count": 70 }
+}

@@ -1,0 +1,351 @@
+extends Node2D
+## Đom Đóm Đêm Mưa — the whole game on one screen.
+##
+## Owns the run state (title / playing / game over), moves the firefly, spawns
+## motes and raindrops, and draws everything with CanvasItem draw calls.
+## Rules live in LightMeter and Difficulty; numbers live in game_config.json.
+##
+## Command-line user args (after `--`):
+##   --demo        start a run immediately and let a simple autopilot fly
+##   --idle        start a run and never move (reaches game over; for screenshots)
+##   --seed=<int>  fixed random seed (for repeatable screenshots)
+
+const CONFIG_PATH := "res://assets/data/game_config.json"
+
+enum State { TITLE, PLAYING, OVER }
+
+const COL_SKY_TOP := Color(0.03, 0.04, 0.12)
+const COL_SKY_LOW := Color(0.07, 0.10, 0.22)
+const COL_MOON := Color(0.93, 0.92, 0.80)
+const COL_GRASS := Color(0.01, 0.02, 0.04)
+const COL_GLOW := Color(1.0, 0.92, 0.35)
+const COL_BODY := Color(0.10, 0.08, 0.06)
+const COL_WING := Color(0.75, 0.85, 1.0, 0.35)
+const COL_MOTE := Color(0.70, 1.0, 0.55)
+const COL_RAIN := Color(0.65, 0.78, 1.0, 0.75)
+const COL_TEXT := Color(0.95, 0.95, 0.88)
+
+var _cfg: Dictionary
+var _meter: LightMeter
+var _rng := RandomNumberGenerator.new()
+var _state: State = State.TITLE
+var _demo := false
+var _demo_idle := false
+
+var _screen: Vector2
+var _player_pos: Vector2
+var _facing := 1.0
+var _motes: Array[Dictionary] = []  # {pos: Vector2, age: float}
+var _drops: Array[Dictionary] = []  # {pos: Vector2, vel: Vector2}
+var _splashes: Array[Dictionary] = []  # {pos: Vector2, age: float}
+var _stars: PackedVector3Array = PackedVector3Array()  # x, y, twinkle phase
+var _grass: PackedVector2Array = PackedVector2Array()
+
+var _time := 0.0
+var _elapsed := 0.0
+var _score := 0
+var _best := 0
+var _rain_timer := 0.0
+var _mote_timer := 0.0
+var _invuln := 0.0
+
+
+func _ready() -> void:
+	_cfg = GameConfig.load_config(CONFIG_PATH)
+	_screen = get_viewport_rect().size
+	_rng.randomize()
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--demo":
+			_demo = true
+		elif arg == "--idle":
+			_demo = true
+			_demo_idle = true
+		elif arg.begins_with("--seed="):
+			_rng.seed = int(arg.trim_prefix("--seed="))
+	_build_backdrop()
+	_meter = LightMeter.from_config(_section("light"))
+	_player_pos = _screen * 0.5
+	if _demo:
+		_start_run()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _state != State.PLAYING and event.is_action_pressed("ui_accept"):
+		if _demo:
+			print("Restart input during demo: %s" % event.as_text())
+		_start_run()
+	elif event.is_action_pressed("ui_cancel"):
+		get_tree().quit()
+
+
+func _process(delta: float) -> void:
+	_time += delta
+	if _state == State.PLAYING:
+		_update_play(delta)
+	_update_splashes(delta)
+	queue_redraw()
+
+
+# --- run flow -----------------------------------------------------------------
+
+func _start_run() -> void:
+	_meter = LightMeter.from_config(_section("light"))
+	_player_pos = Vector2(_screen.x * 0.5, _screen.y * 0.55)
+	_motes.clear()
+	_drops.clear()
+	_splashes.clear()
+	_elapsed = 0.0
+	_score = 0
+	_rain_timer = 0.0
+	_mote_timer = 0.0
+	_invuln = 0.0
+	_state = State.PLAYING
+
+
+func _end_run() -> void:
+	_state = State.OVER
+	_best = maxi(_best, _score)
+	print("Run over: %d motes in %.1f s" % [_score, _elapsed])
+
+
+func _update_play(delta: float) -> void:
+	var p := _section("player")
+	var light_cfg := _section("light")
+	_elapsed += delta
+	_invuln = maxf(0.0, _invuln - delta)
+
+	var dir := _autopilot_dir() if _demo else _input_dir()
+	if absf(dir.x) > 0.05:
+		_facing = signf(dir.x)
+	var r := float(p.get("radius", 13.0))
+	var ground := _ground_y()
+	_player_pos += dir * float(p.get("speed", 330.0)) * delta
+	_player_pos.x = clampf(_player_pos.x, r, _screen.x - r)
+	_player_pos.y = clampf(_player_pos.y, r + 40.0, ground - r)
+
+	_meter.tick(delta)
+	_update_motes(delta, r)
+	_update_rain(delta, r, float(p.get("hit_invuln_sec", 0.8)))
+	if light_cfg.is_empty() or _meter.is_out():
+		_end_run()
+
+
+func _update_motes(delta: float, player_r: float) -> void:
+	var m := _section("motes")
+	var mote_r := float(m.get("radius", 7.0))
+	var lifetime := float(m.get("lifetime", 9.0))
+	_mote_timer -= delta
+	if _mote_timer <= 0.0 and _motes.size() < int(m.get("max_on_screen", 5)):
+		_mote_timer = float(m.get("spawn_interval", 1.1))
+		var pos := Vector2(
+			_rng.randf_range(40.0, _screen.x - 40.0),
+			_rng.randf_range(90.0, _ground_y() - 30.0))
+		_motes.append({"pos": pos, "age": 0.0})
+	for i in range(_motes.size() - 1, -1, -1):
+		var mote := _motes[i]
+		mote["age"] = float(mote["age"]) + delta
+		if _player_pos.distance_to(mote["pos"]) < player_r + mote_r:
+			_meter.collect_mote()
+			_score += 1
+			_motes.remove_at(i)
+		elif float(mote["age"]) > lifetime:
+			_motes.remove_at(i)
+
+
+func _update_rain(delta: float, player_r: float, invuln_sec: float) -> void:
+	var rain := _section("rain")
+	_rain_timer -= delta
+	while _rain_timer <= 0.0:
+		_rain_timer += Difficulty.rain_interval(
+			float(rain.get("start_interval", 0.45)),
+			float(rain.get("min_interval", 0.06)),
+			float(rain.get("interval_ramp_per_sec", 0.006)),
+			_elapsed)
+		var speed := _rng.randf_range(
+			float(rain.get("speed_min", 300.0)), float(rain.get("speed_max", 460.0)))
+		speed += Difficulty.speed_bonus(float(rain.get("speed_ramp_per_sec", 2.5)), _elapsed)
+		var pos := Vector2(_rng.randf_range(0.0, _screen.x + 120.0), -30.0)
+		_drops.append({"pos": pos, "vel": Vector2(float(rain.get("wind_x", -60.0)), speed)})
+
+	var hit_r := player_r + float(rain.get("hit_radius", 3.0))
+	var ground := _ground_y()
+	for i in range(_drops.size() - 1, -1, -1):
+		var drop := _drops[i]
+		var pos: Vector2 = drop["pos"] + drop["vel"] * delta
+		drop["pos"] = pos
+		if _invuln <= 0.0 and _player_pos.distance_to(pos) < hit_r:
+			_meter.take_hit()
+			_invuln = invuln_sec
+			_splashes.append({"pos": pos, "age": 0.0})
+			_drops.remove_at(i)
+		elif pos.y >= ground:
+			_splashes.append({"pos": Vector2(pos.x, ground), "age": 0.0})
+			_drops.remove_at(i)
+
+
+func _update_splashes(delta: float) -> void:
+	for i in range(_splashes.size() - 1, -1, -1):
+		_splashes[i]["age"] = float(_splashes[i]["age"]) + delta
+		if float(_splashes[i]["age"]) > 0.3:
+			_splashes.remove_at(i)
+
+
+# --- input --------------------------------------------------------------------
+
+func _input_dir() -> Vector2:
+	var dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	if Input.is_physical_key_pressed(KEY_A): dir.x -= 1.0
+	if Input.is_physical_key_pressed(KEY_D): dir.x += 1.0
+	if Input.is_physical_key_pressed(KEY_W): dir.y -= 1.0
+	if Input.is_physical_key_pressed(KEY_S): dir.y += 1.0
+	return dir.limit_length(1.0)
+
+
+## Demo-only: fly toward the nearest mote, sidestepping drops just above.
+func _autopilot_dir() -> Vector2:
+	if _demo_idle:
+		return Vector2.ZERO
+	var target := Vector2(_screen.x * 0.5, _screen.y * 0.55)
+	var best_d := INF
+	for mote in _motes:
+		var d := _player_pos.distance_to(mote["pos"])
+		if d < best_d:
+			best_d = d
+			target = mote["pos"]
+	var dir := (target - _player_pos)
+	dir = dir.normalized() if dir.length() > 4.0 else Vector2.ZERO
+	for drop in _drops:
+		var off: Vector2 = _player_pos - drop["pos"]
+		if off.y > 0.0 and off.y < 90.0 and absf(off.x) < 26.0:
+			dir.x += 1.5 * (signf(off.x) if off.x != 0.0 else 1.0)
+	return dir.limit_length(1.0)
+
+
+# --- helpers ------------------------------------------------------------------
+
+func _section(name: String) -> Dictionary:
+	var v: Variant = _cfg.get(name, {})
+	return v if v is Dictionary else {}
+
+
+func _ground_y() -> float:
+	return _screen.y - float(_section("world").get("ground_height", 70.0))
+
+
+func _build_backdrop() -> void:
+	var count := int(_section("world").get("star_count", 70))
+	for i in count:
+		_stars.append(Vector3(
+			_rng.randf_range(0.0, _screen.x),
+			_rng.randf_range(0.0, _screen.y * 0.6),
+			_rng.randf_range(0.0, TAU)))
+	var ground := _ground_y()
+	_grass.append(Vector2(0.0, _screen.y))
+	var x := 0.0
+	while x <= _screen.x:
+		_grass.append(Vector2(x, ground + _rng.randf_range(4.0, 14.0)))
+		_grass.append(Vector2(x + 5.0, ground - _rng.randf_range(10.0, 34.0)))
+		x += 11.0
+	_grass.append(Vector2(_screen.x, ground))
+	_grass.append(Vector2(_screen.x, _screen.y))
+
+
+# --- drawing ------------------------------------------------------------------
+
+func _draw() -> void:
+	_draw_sky()
+	for mote in _motes:
+		_draw_mote(mote)
+	for drop in _drops:
+		var pos: Vector2 = drop["pos"]
+		var vel: Vector2 = drop["vel"]
+		var tail := vel.normalized() * float(_section("rain").get("length", 22.0))
+		draw_line(pos - tail, pos, COL_RAIN, 2.0)
+	for s in _splashes:
+		var a := 1.0 - float(s["age"]) / 0.3
+		draw_arc(s["pos"], 3.0 + 14.0 * float(s["age"]), PI, TAU, 8,
+			Color(COL_RAIN, 0.6 * a), 2.0)
+	draw_colored_polygon(_grass, COL_GRASS)
+	_draw_firefly()
+	_draw_hud()
+
+
+func _draw_sky() -> void:
+	draw_polygon(
+		PackedVector2Array([Vector2.ZERO, Vector2(_screen.x, 0.0), _screen, Vector2(0.0, _screen.y)]),
+		PackedColorArray([COL_SKY_TOP, COL_SKY_TOP, COL_SKY_LOW, COL_SKY_LOW]))
+	for s in _stars:
+		var tw := 0.45 + 0.35 * sin(_time * 1.7 + s.z)
+		draw_circle(Vector2(s.x, s.y), 1.3, Color(1, 1, 0.9, tw))
+	var moon := Vector2(_screen.x * 0.82, 110.0)
+	draw_circle(moon, 60.0, Color(COL_MOON, 0.05))
+	draw_circle(moon, 42.0, COL_MOON)
+	draw_circle(moon + Vector2(-16.0, -8.0), 38.0, COL_SKY_TOP.lerp(COL_SKY_LOW, moon.y / _screen.y))
+
+
+func _draw_mote(mote: Dictionary) -> void:
+	var pos: Vector2 = mote["pos"]
+	var lifetime := float(_section("motes").get("lifetime", 9.0))
+	var fade := clampf((lifetime - float(mote["age"])) / 1.5, 0.0, 1.0)
+	var pulse := 0.8 + 0.2 * sin(_time * 5.0 + pos.x)
+	var bob := Vector2(0.0, 4.0 * sin(_time * 2.0 + pos.y))
+	var r := float(_section("motes").get("radius", 7.0))
+	for k in 4:
+		draw_circle(pos + bob, r * (1.0 + k * 0.9) * pulse, Color(COL_MOTE, 0.12 * fade))
+	draw_circle(pos + bob, r * 0.55, Color(1, 1, 0.9, fade))
+
+
+func _draw_firefly() -> void:
+	var ratio := _meter.ratio() if _meter else 1.0
+	var pos := _player_pos + Vector2(0.0, 3.0 * sin(_time * 3.0))
+	var blink := _invuln > 0.0 and int(_time * 20.0) % 2 == 0
+	# Halo: its size is the light meter.
+	var halo := lerpf(18.0, 150.0, ratio)
+	for k in 14:
+		var f := float(k) / 13.0  # 0 = outermost, 1 = innermost
+		draw_circle(pos, halo * (1.0 - 0.8 * f), Color(COL_GLOW, 0.03))
+	if blink:
+		return
+	var flap := sin(_time * 30.0) * 0.35
+	var back := Vector2(-6.0 * _facing, -6.0)
+	draw_set_transform(pos + back, -0.6 * _facing + flap, Vector2(1.0, 0.45))
+	draw_circle(Vector2(-6.0 * _facing, 0.0), 11.0, COL_WING)
+	draw_set_transform(pos + back, -0.2 * _facing - flap, Vector2(1.0, 0.45))
+	draw_circle(Vector2(-6.0 * _facing, 0.0), 11.0, COL_WING)
+	draw_set_transform(pos, 0.0, Vector2(1.6, 1.0))
+	draw_circle(Vector2(1.0 * _facing, -1.0), 6.0, COL_BODY)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# Glowing abdomen, dimmer when the light is low.
+	var tail := pos + Vector2(-9.0 * _facing, 2.0)
+	draw_circle(tail, 7.0, Color(COL_GLOW, 0.35 + 0.5 * ratio))
+	draw_circle(tail, 4.0, Color(1, 1, 0.85, 0.5 + 0.5 * ratio))
+	draw_circle(pos + Vector2(9.0 * _facing, -2.0), 4.0, COL_BODY)
+	draw_line(pos + Vector2(10.0 * _facing, -5.0), pos + Vector2(16.0 * _facing, -13.0), COL_BODY, 1.5)
+
+
+func _draw_hud() -> void:
+	var font := ThemeDB.fallback_font
+	if _state == State.TITLE:
+		_center_text(font, "ĐOM ĐÓM ĐÊM MƯA", _screen.y * 0.3, 56, COL_GLOW)
+		_center_text(font, "Nhặt đốm sáng để giữ đèn — tránh giọt mưa", _screen.y * 0.3 + 52.0, 22, COL_TEXT)
+		_center_text(font, "Mũi tên / WASD để bay  ·  Space để bắt đầu", _screen.y * 0.3 + 86.0, 20, Color(COL_TEXT, 0.75))
+		return
+	# Light bar
+	var bar := Rect2(24.0, 22.0, 240.0, 14.0)
+	draw_rect(bar, Color(1, 1, 1, 0.12))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * _meter.ratio(), bar.size.y)), COL_GLOW)
+	draw_rect(bar, Color(1, 1, 1, 0.5), false, 1.0)
+	draw_string(font, Vector2(24.0, 60.0), "Ánh sáng", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, Color(COL_TEXT, 0.8))
+	draw_string(font, Vector2(_screen.x - 224.0, 36.0), "Đốm sáng: %d" % _score,
+		HORIZONTAL_ALIGNMENT_RIGHT, 200.0, 22, COL_TEXT)
+	draw_string(font, Vector2(_screen.x - 224.0, 60.0), "Kỷ lục: %d" % _best,
+		HORIZONTAL_ALIGNMENT_RIGHT, 200.0, 16, Color(COL_TEXT, 0.7))
+	if _state == State.OVER:
+		draw_rect(Rect2(Vector2.ZERO, _screen), Color(0, 0, 0, 0.45))
+		_center_text(font, "Đèn đã tắt", _screen.y * 0.38, 52, COL_GLOW)
+		_center_text(font, "Bạn nhặt được %d đốm sáng" % _score, _screen.y * 0.38 + 48.0, 24, COL_TEXT)
+		_center_text(font, "Space để chơi lại", _screen.y * 0.38 + 84.0, 20, Color(COL_TEXT, 0.75))
+
+
+func _center_text(font: Font, text: String, y: float, size: int, color: Color) -> void:
+	draw_string(font, Vector2(0.0, y), text, HORIZONTAL_ALIGNMENT_CENTER, _screen.x, size, color)
