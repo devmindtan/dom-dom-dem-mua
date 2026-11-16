@@ -16,7 +16,7 @@
 **Intent:**
 
 ## Look and references
-- Look: 2D night meadow in deep navy, crescent moon, twinkling stars, black grass silhouette; warm yellow-green firefly with a soft halo whose size tracks its light; cold pale-blue rain streaks. Every figure drawn in code. *(provisional)*
+- Look: 2D night meadow in deep navy, crescent moon, twinkling stars, black grass silhouette; warm yellow-green firefly with a soft halo whose size tracks its light; cold pale-blue rain streaks. Creatures and rain are pixel-art sprites (3x, Nearest) generated from code by `gamekit art` (`assets/source/sprites/<name>/gen.py`); sky, halo and HUD are drawn shapes. *(provisional)*
 - References: none.
 - View: 2D · Camera: fixed, whole field on screen.
 
@@ -42,6 +42,7 @@ Rain starts sparse and gets denser and faster every second; around 60–90 s the
 - [x] Rain that ramps in density and speed
 - [x] Title, HUD (light bar, score, best), game-over screen with restart
 - [x] All tuning values in `assets/data/game_config.json`
+- [x] Pixel-art sprites: firefly (4-frame wing flap, mirrors when flying left), mote (pulse), raindrop (slanted with the wind), splash (3 frames); scale/frames/fps in the `sprites` config block
 
 ## Your systems
 

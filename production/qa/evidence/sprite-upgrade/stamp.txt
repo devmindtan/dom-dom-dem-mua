@@ -1,0 +1,2 @@
+Reviewed-Content-Hash: src/game/main.gd 121cc0df6d2603170df0a48da4173af86717c95c
+Reviewed-Content-Hash: assets/data/game_config.json 90fb98c740c01f2fa2c4cda54cb870673b5217fd

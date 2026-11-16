@@ -9,9 +9,15 @@
     "speed_min": 300.0,
     "speed_max": 460.0,
     "speed_ramp_per_sec": 2.5,
-    "length": 22.0,
     "hit_radius": 3.0,
     "wind_x": -60.0
   },
-  "world": { "ground_height": 70.0, "star_count": 70 }
+  "world": { "ground_height": 70.0, "star_count": 70 },
+  "sprites": {
+    "scale": 3,
+    "firefly": { "frames": 4, "fps": 12 },
+    "mote": { "frames": 4, "fps": 6 },
+    "raindrop": { "frames": 1, "fps": 1 },
+    "splash": { "frames": 3, "fps": 10 }
+  }
 }
