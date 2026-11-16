@@ -1,0 +1,12 @@
+{
+  "_note": "sample composed by lpc_sample_compose.py, not by the generator UI",
+  "bodyType": "male",
+  "layers": [
+    "body/bodies/male",
+    "feet/shoes/revised/male",
+    "legs/pants/male",
+    "torso/clothes/longsleeve/longsleeves/male",
+    "head/heads/human/male",
+    "hair/bob/adult"
+  ]
+}
