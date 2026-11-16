@@ -26,7 +26,7 @@ Bản web chạy được trên itch.io.
 ## Phát triển
 
 ```bash
-gamekit test         # 25 test unit + integration
+gamekit test         # 16 test unit + integration
 gamekit shot . "" 600 -- --demo --seed=7   # để bot tự chơi 10 giây rồi lưu ảnh vào builds/shots/
 gamekit export       # test → Linux + Windows + Web
 ```
@@ -35,7 +35,6 @@ gamekit export       # test → Linux + Windows + Web
 |---|---|
 | `src/core/` | luật chơi thuần, test được: `LightMeter` (đèn = máu), `Difficulty` (mưa tăng dần), `GameConfig`, `SpriteAnchor` (đặt sprite theo điểm neo, kể cả khi lật) |
 | `src/game/main.gd` | màn chơi duy nhất; bầu trời, quầng sáng, HUD vẽ bằng code; đom đóm, đốm sáng, mưa, tóe nước là sprite |
-| `assets/source/sprites/mage/gen.py` | sheet pháp sư 48x48, 7 animation (idle, run, jump, attack, spell, hurt, death); xem bằng `--mage-preview` |
 | `assets/source/sprites/<tên>/gen.py` | code sinh sprite pixel art (`gamekit art run . <tên>`); kết quả ở `assets/sprites/custom/<tên>/` |
 | `assets/data/game_config.json` | **mọi con số cân bằng**: tốc độ, tốc độ hao đèn, mật độ mưa…, và khối `sprites` (phóng to, số frame, fps); sửa ở đây, không sửa code |
 | `tests/unit`, `tests/integration` | test |
@@ -43,8 +42,7 @@ gamekit export       # test → Linux + Windows + Web
 | `assets/sprites/characters/sample_hero` | nhân vật LPC mẫu để thử pipeline (game hiện chưa dùng) |
 
 Tham số dòng lệnh khi chạy (sau `--`): `--demo` (bot tự bay), `--idle` (đứng yên cho tới khi thua),
-`--seed=<n>` (cố định ngẫu nhiên), `--debug-anchors` (chấm hồng ở điểm neo của mỗi sprite),
-`--mage-preview` (bày cả 7 animation của pháp sư thành một hàng).
+`--seed=<n>` (cố định ngẫu nhiên), `--debug-anchors` (chấm hồng ở điểm neo của mỗi sprite).
 
 Mở AI agent (Claude Code, OpenCode, Codex…) **trong thư mục này** để dùng skill của framework (`/next-step`, `/balance-check`, `/dev-story`…); agent nào cũng bắt đầu từ `AGENTS.md`.
 
