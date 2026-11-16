@@ -34,8 +34,9 @@ gamekit export       # test → Linux + Windows + Web
 | Ở đâu | Là gì |
 |---|---|
 | `src/core/` | luật chơi thuần, test được: `LightMeter` (đèn = máu), `Difficulty` (mưa tăng dần), `GameConfig` |
-| `src/game/main.gd` | màn chơi duy nhất; mọi hình vẽ bằng code (`_draw`), không dùng ảnh |
-| `assets/data/game_config.json` | **mọi con số cân bằng**: tốc độ, tốc độ hao đèn, mật độ mưa… sửa ở đây, không sửa code |
+| `src/game/main.gd` | màn chơi duy nhất; bầu trời, quầng sáng, HUD vẽ bằng code; đom đóm, đốm sáng, mưa, tóe nước là sprite |
+| `assets/source/sprites/<tên>/gen.py` | code sinh sprite pixel art (`gamekit art run . <tên>`); kết quả ở `assets/sprites/custom/<tên>/` |
+| `assets/data/game_config.json` | **mọi con số cân bằng**: tốc độ, tốc độ hao đèn, mật độ mưa…, và khối `sprites` (phóng to, số frame, fps); sửa ở đây, không sửa code |
 | `tests/unit`, `tests/integration` | test |
 | `production/qa/evidence/` | ảnh chụp chứng minh từng màn đã chạy |
 | `assets/sprites/characters/sample_hero` | nhân vật LPC mẫu để thử pipeline (game hiện chưa dùng) |
