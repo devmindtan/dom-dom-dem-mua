@@ -43,7 +43,7 @@ gamekit export       # test → Linux + Windows + Web
 Tham số dòng lệnh khi chạy (sau `--`): `--demo` (bot tự bay), `--idle` (đứng yên cho tới khi thua),
 `--seed=<n>` (cố định ngẫu nhiên).
 
-Mở Claude Code **trong thư mục này** để dùng skill của framework (`/next-step`, `/balance-check`, `/dev-story`…).
+Mở AI agent (Claude Code, OpenCode, Codex…) **trong thư mục này** để dùng skill của framework (`/next-step`, `/balance-check`, `/dev-story`…); agent nào cũng bắt đầu từ `AGENTS.md`.
 
 ## Thư mục nào của ai
 
@@ -52,6 +52,7 @@ Mở Claude Code **trong thư mục này** để dùng skill của framework (`/
 | `src/`, `assets/`, `tests/`, `design/`, `production/`, `project.godot`, `export_presets.cfg`, `README.md` | **game này** | sửa thoải mái |
 | `addons/gamekit/`, `Makefile` | gamekit (`../../tools/gamekit`) | bản sao, sửa ở tools/gamekit rồi `gamekit install` |
 | `.claude/`, `CLAUDE.md`, `project.yaml`, `docs/` | framework Claude Code Game Studios | cấu hình agent; cập nhật theo `UPGRADING.md` của template |
+| `AGENTS.md`, `GEMINI.md`, `.agents/skills` | gamekit (`gamekit agents-link`) | lối vào cho mọi agent; `.agents/skills` là symlink tới `.claude/skills` |
 | `LICENSES/` | giấy phép của mã bên thứ ba | không xóa |
 
 Git: remote `framework` trỏ về repo gốc của framework. Thêm repo riêng của game bằng `git remote add origin <url>`.
